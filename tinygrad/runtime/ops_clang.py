@@ -15,8 +15,8 @@ class ClangProgram:
     cmd = ['clang', '-shared', '-O2', '-Wall', '-Werror', '-x', 'c', args['cflags'], '-']
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output, _ = process.communicate(input=prg.encode('utf-8'))
-    stream = io.BytesIO(output).fileno()
-    self.lib = ctypes.CDLL(None, handle=stream)
+    stream = io.BytesIO(output)
+    self.lib = ctypes.CDLL(None, handle=stream.fileno())
     self.fxn = self.lib[name]
 
   def __call__(self, global_size, local_size, *args, wait=False):
