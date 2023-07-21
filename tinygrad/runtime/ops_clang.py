@@ -1,4 +1,4 @@
-import os, time, ctypes, hashlib, subprocess, platform, tempfile
+import time, ctypes, subprocess, platform, io
 from tinygrad.ops import Compiled
 from tinygrad.runtime.lib import RawMallocBuffer
 from tinygrad.codegen.cstyle import CStyleCodegen, CStyleLanguage
@@ -12,12 +12,11 @@ args = {
 class ClangProgram:
   def __init__(self, name:str, prg:str):
     prg = '#include <math.h>\n#define max(x,y) ((x>y)?x:y)\n#define int64 long\n#define half __fp16\n#define uchar unsigned char\n#define bool uchar\n' + prg
-    # TODO: is there a way to not write this to disk?
-    fn = f"{tempfile.gettempdir()}/clang_{hashlib.md5(prg.encode('utf-8')).hexdigest()}.{args['ext']}"
-    if not os.path.exists(fn):
-      subprocess.check_output(args=('clang -shared -O2 -Wall -Werror -x c '+args['cflags']+' - -o '+fn+'.tmp').split(), input=prg.encode('utf-8'))
-      os.rename(fn+'.tmp', fn)
-    self.lib = ctypes.CDLL(fn)
+    cmd = ['clang', '-shared', '-O2', '-Wall', '-Werror', '-x', 'c', args['cflags'], '-']
+    process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    output, _ = process.communicate(input=prg.encode('utf-8'))
+    stream = io.BytesIO(output)
+    self.lib = ctypes.CDLL(None, handle=stream)
     self.fxn = self.lib[name]
 
   def __call__(self, global_size, local_size, *args, wait=False):
