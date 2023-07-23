@@ -16,7 +16,7 @@ class ClangProgram:
     process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     output, _ = process.communicate(input=prg.encode('utf-8'))
     stream = io.BytesIO(output)
-    self.lib = ctypes.CDLL(None, handle=stream.fileno())
+    self.lib = ctypes.CDLL(stream) #TypeError: expected str, bytes or os.PathLike object, not BytesIO
     self.fxn = self.lib[name]
 
   def __call__(self, global_size, local_size, *args, wait=False):
